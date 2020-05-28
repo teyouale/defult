@@ -1,14 +1,8 @@
 package com.et.defult;
 
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.database.Cursor;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.Telephony.Sms.Inbox;
-
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.View;
@@ -20,30 +14,25 @@ import android.widget.RelativeLayout;
 import android.widget.SimpleCursorAdapter;
 import android.widget.Toast;
 
-;import androidx.annotation.RequiresApi;
 import androidx.fragment.app.FragmentActivity;
-import androidx.loader.app.LoaderManager;
-import androidx.loader.content.CursorLoader;
-import androidx.loader.content.Loader;
 
-public class MainActivity extends FragmentActivity implements LoaderManager.LoaderCallbacks<Cursor> {
+public class MainActivity extends FragmentActivity {
     private RelativeLayout mSetDefaultSmsLayout;
     private Button mSendSmsButton;
     private EditText mSendSmsEditText;
     private SimpleCursorAdapter mAdapter;
 
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         // Find some views
-        mSetDefaultSmsLayout = (RelativeLayout) findViewById(R.id.set_default_sms_layout);
-        mSendSmsEditText = (EditText) findViewById(R.id.send_sms_edittext);
-        ListView listView = (ListView) findViewById(android.R.id.list);
+        mSetDefaultSmsLayout = findViewById(R.id.set_default_sms_layout);
+        mSendSmsEditText = findViewById(R.id.send_sms_edittext);
+        ListView listView = findViewById(android.R.id.list);
         listView.setEmptyView(findViewById(android.R.id.empty));
-        mSendSmsButton = (Button) findViewById(R.id.send_sms_button);
+        mSendSmsButton = findViewById(R.id.send_sms_button);
         mSendSmsButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -52,12 +41,7 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
         });
 
         // Create adapter and set it to our ListView
-        final String[] fromFields = new String[] {
-                SmsQuery.PROJECTION[SmsQuery.ADDRESS], SmsQuery.PROJECTION[SmsQuery.BODY] };
-        final int[] toViews = new int[] { android.R.id.text1, android.R.id.text2 };
-        mAdapter = new SimpleCursorAdapter(this, android.R.layout.simple_list_item_2, null,
-                fromFields, toViews, 0);
-        listView.setAdapter(mAdapter);
+
 
         // Placeholder to process incoming SEND/SENDTO intents
         String intentAction = getIntent() == null ? null : getIntent().getAction();
@@ -69,7 +53,7 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
         }
 
         // Simple query to show the most recent SMS messages in the inbox
-        getSupportLoaderManager().initLoader(SmsQuery.TOKEN, null, this);
+        // getSupportLoaderManager().initLoader(SmsQuery.TOKEN, null, this);
     }
 
     /**
@@ -112,7 +96,7 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
                 mSendSmsEditText.setEnabled(false);
                 mSendSmsButton.setEnabled(false);
 
-                Button button = (Button) findViewById(R.id.set_default_sms_button);
+                Button button = findViewById(R.id.set_default_sms_button);
                 button.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -128,52 +112,5 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
-    }
-
-
-    @Override
-    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        if (i == SmsQuery.TOKEN) {
-            // This will fetch all SMS messages in the inbox, ordered by date desc
-            return new CursorLoader(this, SmsQuery.CONTENT_URI, SmsQuery.PROJECTION, null, null,
-                    SmsQuery.SORT_ORDER);
-        }
-        return null;
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        if (cursorLoader.getId() == SmsQuery.TOKEN && cursor != null) {
-            // Standard swap cursor in when load is done
-            mAdapter.swapCursor(cursor);
-        }
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> cursorLoader) {
-        // Standard swap cursor to null when loader is reset
-        mAdapter.swapCursor(null);
-    }
-
-    /**
-     * A basic SmsQuery on android.provider.Telephony.Sms.Inbox
-     */
-    private interface SmsQuery {
-        int TOKEN = 1;
-
-        @SuppressLint("NewApi")
-        static final Uri CONTENT_URI = Inbox.CONTENT_URI;
-
-        static final String[] PROJECTION = {
-                Inbox._ID,
-                Inbox.ADDRESS,
-                Inbox.BODY,
-        };
-
-        static final String SORT_ORDER = Inbox.DEFAULT_SORT_ORDER;
-
-        int ID = 0;
-        int ADDRESS = 1;
-        int BODY = 2;
     }
 }
