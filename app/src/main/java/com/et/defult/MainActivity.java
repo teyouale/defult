@@ -1,8 +1,12 @@
 package com.et.defult;
 
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Telephony;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.View;
@@ -14,9 +18,14 @@ import android.widget.RelativeLayout;
 import android.widget.SimpleCursorAdapter;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.FragmentActivity;
+import androidx.loader.app.LoaderManager;
+import androidx.loader.content.CursorLoader;
+import androidx.loader.content.Loader;
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends FragmentActivity implements LoaderManager.LoaderCallbacks {
     private RelativeLayout mSetDefaultSmsLayout;
     private Button mSendSmsButton;
     private EditText mSendSmsEditText;
@@ -41,7 +50,12 @@ public class MainActivity extends FragmentActivity {
         });
 
         // Create adapter and set it to our ListView
-
+        final String[] fromFields = new String[]{
+                SmsQuery.PROJECTION[SmsQuery.ADDRESS], SmsQuery.PROJECTION[SmsQuery.BODY]};
+        final int[] toViews = new int[]{android.R.id.text1, android.R.id.text2};
+        mAdapter = new SimpleCursorAdapter(this, android.R.layout.simple_list_item_2, null,
+                fromFields, toViews, 0);
+        listView.setAdapter(mAdapter);
 
         // Placeholder to process incoming SEND/SENDTO intents
         String intentAction = getIntent() == null ? null : getIntent().getAction();
@@ -53,8 +67,9 @@ public class MainActivity extends FragmentActivity {
         }
 
         // Simple query to show the most recent SMS messages in the inbox
-        // getSupportLoaderManager().initLoader(SmsQuery.TOKEN, null, this);
+        getSupportLoaderManager().initLoader(SmsQuery.TOKEN, null, this);
     }
+
 
     /**
      * Dummy sendSms method, would need the "to" address to actually send a message :)
@@ -112,5 +127,52 @@ public class MainActivity extends FragmentActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
+    }
+
+    @NonNull
+    @Override
+    public Loader onCreateLoader(int id, @Nullable Bundle args) {
+        if (id == SmsQuery.TOKEN) {
+            // This will fetch all SMS messages in the inbox, ordered by date desc
+            return new CursorLoader(this, SmsQuery.CONTENT_URI, SmsQuery.PROJECTION, null, null,
+                    SmsQuery.SORT_ORDER);
+        }
+        return null;
+    }
+
+    @Override
+    public void onLoadFinished(@NonNull Loader loader, Object data) {
+        if (loader.getId() == SmsQuery.TOKEN && data != null) {
+            // Standard swap cursor in when load is done
+            mAdapter.swapCursor((Cursor) data);
+        }
+    }
+
+    @Override
+    public void onLoaderReset(@NonNull Loader loader) {
+        // Standard swap cursor to null when loader is reset
+        mAdapter.swapCursor(null);
+    }
+
+    /**
+     * A basic SmsQuery on android.provider.Telephony.Sms.Inbox
+     */
+    private interface SmsQuery {
+        int TOKEN = 1;
+
+        @SuppressLint("NewApi")
+        Uri CONTENT_URI = Telephony.Sms.Inbox.CONTENT_URI;
+
+        String[] PROJECTION = {
+                Telephony.Sms.Inbox._ID,
+                Telephony.Sms.Inbox.ADDRESS,
+                Telephony.Sms.Inbox.BODY,
+        };
+
+        String SORT_ORDER = Telephony.Sms.Inbox.DEFAULT_SORT_ORDER;
+
+        int ID = 0;
+        int ADDRESS = 1;
+        int BODY = 2;
     }
 }
